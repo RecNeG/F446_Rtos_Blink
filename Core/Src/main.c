@@ -98,7 +98,7 @@ int main(void)
 
   /* Start scheduler */
   osKernelStart();
-
+	HAL_GPIO_TogglePin(LD2_GPIO_Port,LD2_Pin);
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */

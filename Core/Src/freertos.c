@@ -23,6 +23,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "string.h"
+#include "userLed.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -125,10 +126,21 @@ void MX_FREERTOS_Init(void) {
 void StartLedTask(void *argument)
 {
   /* USER CODE BEGIN StartLedTask */
+	userLed_t Led1;
+	
+	Led1.CurrentTick=0;
+	Led1.GPIO_Pin=GPIO_PIN_5; //LD2_Pin
+	Led1.GPIO_Port=GPIOA; //LD2_GPIO_Port
+	Led1.HighTick=300;	//OsTick (ms)
+	Led1.LowTick=700;
+	Led1.Preload=LPL_Disable;
+	Led1.State=LS_Low;
+	
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+		uint32_t _sleepTime = LedHandler(&Led1);
+    osDelay(_sleepTime);
   }
   /* USER CODE END StartLedTask */
 }
