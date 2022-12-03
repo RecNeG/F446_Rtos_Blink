@@ -24,6 +24,7 @@
 #include "cmsis_os.h"
 #include "string.h"
 #include "userLed.h"
+#include "userUart.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -126,21 +127,40 @@ void MX_FREERTOS_Init(void) {
 void StartLedTask(void *argument)
 {
   /* USER CODE BEGIN StartLedTask */
-	userLed_t Led1;
 	
-	Led1.CurrentTick=0;
-	Led1.GPIO_Pin=GPIO_PIN_5; //LD2_Pin
-	Led1.GPIO_Port=GPIOA; //LD2_GPIO_Port
-	Led1.HighTick=300;	//OsTick (ms)
-	Led1.LowTick=700;
-	Led1.Preload=LPL_Disable;
-	Led1.State=LS_Low;
+	userLed.CurrentTick=0;
+	userLed.GPIO_Pin=GPIO_PIN_5; //LD2_Pin
+	userLed.GPIO_Port=GPIOA; //LD2_GPIO_Port
+	userLed.HighTick=100;	//OsTick (ms)
+	userLed.LowTick=100;
+	userLed.Preload=LPL_Disable;
+	userLed.GPIO_State=LS_Low;
 	
   /* Infinite loop */
   for(;;)
   {
-		uint32_t _sleepTime = LedHandler(&Led1);
-    osDelay(_sleepTime);
+		uint32_t _sleepTime;
+		if(userUart.EchoState==UES_Enable)
+			_sleepTime=LedHandler(&userLed);
+		else
+			_sleepTime=LedHandlerStatic(&userLed);
+		
+		uint32_t _event = osThreadFlagsWait(OSTF_KILLECHO|OSTF_STARTECHO,osFlagsWaitAny,_sleepTime);
+		switch (_event)
+		{
+			case OSTF_KILLECHO:
+			{
+				osThreadTerminate(EchoTaskHandle);
+				userUart.EchoState=UES_Disable;
+				break;
+			}
+			case OSTF_STARTECHO:
+			{
+				EchoTaskHandle = osThreadNew(StartEchoTask, NULL, &EchoTask_attributes);
+				userUart.EchoState=UES_Enable;
+				break;
+			}
+		}
   }
   /* USER CODE END StartLedTask */
 }
@@ -156,7 +176,7 @@ void StartLedTask(void *argument)
 void StartEchoTask(void *argument)
 {
   /* USER CODE BEGIN StartEchoTask */
-
+	HAL_UART_Receive_IT(&huart2,&userUart.RxBuf[userUart.RxBufCounter],1);
   /* Infinite loop */
   for(;;)
   {
