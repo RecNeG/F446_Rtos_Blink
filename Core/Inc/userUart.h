@@ -24,5 +24,6 @@ typedef struct
 
 extern userUart_t userUart;
 extern void UartHandler(userUart_t *_uart);
+extern void EchoHandler(userUart_t *_uart,void *_led);
 
 #endif

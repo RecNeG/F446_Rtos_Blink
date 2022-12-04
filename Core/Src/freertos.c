@@ -136,17 +136,17 @@ void StartLedTask(void *argument)
 	userLed.Preload=LPL_Disable;
 	userLed.GPIO_State=LS_Low;
 	
+	uint32_t _sleepTime;
   /* Infinite loop */
   for(;;)
   {
-		uint32_t _sleepTime;
 		if(userUart.EchoState==UES_Enable)
 			_sleepTime=LedHandler(&userLed);
 		else
 			_sleepTime=LedHandlerStatic(&userLed);
 		
-		uint32_t _event = osThreadFlagsWait(OSTF_KILLECHO|OSTF_STARTECHO,osFlagsWaitAny,_sleepTime);
-		switch (_event)
+		uint32_t _threadFlag = osThreadFlagsWait(OSTF_KILLECHO|OSTF_STARTECHO,osFlagsWaitAny,_sleepTime);
+		switch (_threadFlag)
 		{
 			case OSTF_KILLECHO:
 			{
@@ -176,11 +176,25 @@ void StartLedTask(void *argument)
 void StartEchoTask(void *argument)
 {
   /* USER CODE BEGIN StartEchoTask */
-	HAL_UART_Receive_IT(&huart2,&userUart.RxBuf[userUart.RxBufCounter],1);
+	uint32_t _sleepTime=0;
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+		uint32_t _threadFlag = osThreadFlagsWait(OSTF_CHECKREQUEST,osFlagsWaitAny,_sleepTime);
+		switch (_threadFlag)
+		{
+			case OSTF_CHECKREQUEST:
+			{
+				_sleepTime=5;
+				break;
+			}
+			default:
+			{
+				_sleepTime=osWaitForever;
+				EchoHandler(&userUart,&userLed);
+				break;
+			}
+		}		
   }
   /* USER CODE END StartEchoTask */
 }
