@@ -7,8 +7,17 @@
 
 userUart_t userUart;
 
+#define COMMANDSTOP		0
+#define COMMANDSTART	1
+#define COMMANDBAUD		2
+#define COMMANDLEN 		3
+const char command[COMMANDLEN][6]={"stop","start","baud"};
+const uint8_t commandStrLen[COMMANDLEN]={4,5,4};
+
 extern osThreadId_t EchoTaskHandle;
 extern osThreadId_t LedTaskHandle;
+
+
 
 void UartHandler(userUart_t *_uart)
 {
@@ -17,32 +26,47 @@ void UartHandler(userUart_t *_uart)
 		case UES_Enable:
 		{
 			
-			if(strncmp((char*)(_uart->RxBuf),"stop",_uart->RxBufCounter)!=0)
+			if(strncmp((char*)(_uart->RxBuf),command[COMMANDSTOP],_uart->RxBufCounter)==0)
+			{
+				if(_uart->RxBufCounter==commandStrLen[COMMANDSTOP])
+				{
+					osThreadFlagsSet(LedTaskHandle,OSTF_KILLECHO);
+					memset(_uart->RxBuf,0,_uart->RxBufCounter);
+					_uart->RxBufCounter=0;
+				}
+			}
+			else
 			{
 				osThreadFlagsSet(EchoTaskHandle,OSTF_CHECKREQUEST);
-				return;
-			}
-			else if(_uart->RxBufCounter==4)
-			{
-				osThreadFlagsSet(LedTaskHandle,OSTF_KILLECHO);
-				memset(_uart->RxBuf,0,_uart->RxBufCounter);
-				_uart->RxBufCounter=0;
 			}
 			break;
 		}
 		case UES_Disable:
 		{
-			if(strncmp((char*)(_uart->RxBuf),"start",_uart->RxBufCounter)!=0)
+			if(strncmp((char*)(_uart->RxBuf),command[COMMANDSTART],_uart->RxBufCounter)==0)
 			{
-				memset(_uart->RxBuf,0,_uart->RxBufCounter);
-				_uart->RxBufCounter=0;
+				if(_uart->RxBufCounter==commandStrLen[COMMANDSTART])
+				{
+					osThreadFlagsSet(LedTaskHandle,OSTF_STARTECHO);
+					memset(_uart->RxBuf,0,_uart->RxBufCounter);
+					_uart->RxBufCounter=0;
+					return;
+				}
 			}
-			else if(_uart->RxBufCounter==5)
+			else if(strncmp((char*)(_uart->RxBuf),command[COMMANDBAUD],_uart->RxBufCounter)==0)
 			{
-				osThreadFlagsSet(LedTaskHandle,OSTF_STARTECHO);
+				if(_uart->RxBufCounter==commandStrLen[COMMANDBAUD])
+				{
+					//ChangeBaud();
+					memset(_uart->RxBuf,0,_uart->RxBufCounter);
+					_uart->RxBufCounter=0;
+					return;
+				}
+			}
+			else
+			{
 				memset(_uart->RxBuf,0,_uart->RxBufCounter);
 				_uart->RxBufCounter=0;
-				return;
 			}
 			break;
 		}
